@@ -27,12 +27,23 @@ with tab1:
             st.switch_page("app.py")
 
 with tab2:
+    if st.session_state.user is None:
+        st.warning("Debes iniciar sesión para registrar usuarios.")
+        st.stop()
+
+    ADMIN_EMAIL = "rodrigo.felix@metso.com"  # ← cámbialo al tuyo
+
+    if st.session_state.user.user.email != ADMIN_EMAIL:
+        st.warning("Solo el administrador puede registrar usuarios.")
+        st.stop()
+
     st.write("⚠️ Solo tú deberías registrar usuarios")
+    
     new_email = st.text_input("Nuevo correo")
     new_password = st.text_input("Contraseña nueva", type="password")
 
     if st.button("Crear cuenta"):
         signup_user(new_email, new_password)
-        st.success("Usuario creado")
+        st.success("Usuario creado exitosamente")
 
 
