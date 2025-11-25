@@ -11,7 +11,9 @@ from mod_auth import require_login
 st.set_page_config(page_title="Calendario", layout="wide")
 
 # Bloquea acceso si no está logueado
-require_login()
+if "user" not in st.session_state or st.session_state.user is None:
+    st.switch_page("login.py")
+
 
 st.write(f"Bienvenido **{st.session_state.user.user.email}**")
 
@@ -377,3 +379,4 @@ with tab2:
                     pretty_rec
 
                 )
+
