@@ -20,7 +20,7 @@ st.write(f"Bienvenido **{st.session_state.user.user.email}**")
 st.title("Calendario de Servicios | Área de propuestas")
 
 supabase = init_supabase(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-df_mo = fetch_table_cached(supabase, "tidy_mo")
+df_mo = fetch_table_cached(supabase, "tidy.tidy_mo")
 
 #un pqueño parche
 df_mo["ESP"] = (
@@ -32,7 +32,7 @@ df_mo["ESP"] = (
 )
 
 
-df_rec = fetch_table_cached(supabase, "tidy_recursos")
+df_rec = fetch_table_cached(supabase, "tidy.tidy_recursos")
 
 from colors import METSO_COLORS
 
@@ -379,5 +379,6 @@ with tab2:
                     pretty_rec
 
                 )
+
 
 
