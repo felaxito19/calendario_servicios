@@ -4,7 +4,7 @@ from supabase import create_client
 
 import streamlit as st
 
-@st.cache_data(show_spinner="Cargando datos desde Supabase…")
+@st.cache_data(show_spinner="Cargando datos desde la base de datos…")
 def fetch_table_cached(_supabase, table_name):
     return fetch_table(_supabase, table_name)
 

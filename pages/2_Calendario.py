@@ -6,7 +6,6 @@ from mod_pivot import crear_pivot
 from mod_aggrid import render_grid, estilo_tabla
 
 
-from mod_auth import require_login
 
 st.set_page_config(page_title="Calendario", layout="wide")
 
@@ -19,13 +18,13 @@ st.write(f"Bienvenido **{st.session_state.user.user.email}**")
 
 st.title("Calendario de Servicios | Área de propuestas")
 
-supabase = init_supabase(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-df_mo = fetch_table_cached(supabase, "tidy_mo")
-df_mo.columns = [c.upper() for c in df_mo.columns]
+from repositories import mano_obra_repo, recursos_repo
+df_mo = mano_obra_repo.obtener_todo_df()
+df_rec = recursos_repo.obtener_todo_df()
 
 #un pqueño parche
-df_mo["ESP"] = (
-    df_mo["ESP"]
+df_mo["esp"] = (
+    df_mo["esp"]
     .fillna("")          # convierte None/NaN a string vacío
     .astype(str)         # garantiza que todo sea string
     .str.strip()         # quita espacios alrededor
@@ -33,12 +32,11 @@ df_mo["ESP"] = (
 )
 
 
-df_rec = fetch_table_cached(supabase, "tidy_rec")
-df_rec.columns = [c.upper() for c in df_rec.columns]
+
 
 from colors import METSO_COLORS
 
-print(METSO_COLORS["ORANGE"])
+
 
 orden_meses = {
     "Enero": 1, "Febrero": 2, "Marzo": 3, "Abril": 4,
@@ -61,7 +59,7 @@ abrev_meses = {
     "Diciembre": "DIC"
 }
 
-tab1, tab2 = st.tabs(["Contratos", "Servicios SPOT"])
+tab1, tab2 = st.tabs(["Contratos", "Servicios Spot"])
 
 # ---------------------------------------------------------------------------------------------------
 # FUNCIÓN PARA MI DASHBOARD
@@ -106,7 +104,7 @@ def render_cards_servicio(df_mes_mo, df_mes_rec, estilo_tabla, pretty_mo, pretty
                 </h5>
             """, unsafe_allow_html=True)
 
-            print(df_t)
+            
 
 
             df_pivot = (
@@ -120,7 +118,7 @@ def render_cards_servicio(df_mes_mo, df_mes_rec, estilo_tabla, pretty_mo, pretty
                 .rename(columns=pretty_mo)
             )
 
-            st.write(estilo_tabla(df_pivot))
+            st.dataframe(estilo_tabla(df_pivot), hide_index=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # =========================================================
@@ -172,7 +170,7 @@ def render_cards_servicio(df_mes_mo, df_mes_rec, estilo_tabla, pretty_mo, pretty
                 .rename(columns=pretty_rec)
             )
 
-            st.write(estilo_tabla(df_pivot))
+            st.dataframe(estilo_tabla(df_pivot), hide_index=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # =========================================================
@@ -219,7 +217,7 @@ def render_cards_servicio(df_mes_mo, df_mes_rec, estilo_tabla, pretty_mo, pretty
                     .rename(columns=pretty_rec)
                 )
 
-                st.write(estilo_tabla(df_pivot))
+                st.dataframe(estilo_tabla(df_pivot), hide_index=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -230,8 +228,8 @@ with tab1:
     st.header("Servicios relacionados a contratos")
 
     # 1) Filtrar df_mo y df_rec a solo CONTRATOS
-    df_contrato_mo  = df_mo[df_mo["FUENTE"] == "CONTRATO"].copy()
-    df_contrato_rec = df_rec[df_rec["FUENTE"] == "CONTRATO"].copy()
+    df_contrato_mo  = df_mo[df_mo["fuente"] == "CONTRATO"].copy()
+    df_contrato_rec = df_rec[df_rec["fuente"] == "CONTRATO"].copy()
 
     # 2) Aplicar tus filtros (+ pivot)
     sap, cliente, gerencia, año = filtros_basicos(df_contrato_mo, "contrato")
@@ -241,17 +239,17 @@ with tab1:
     # 3) Render de la tabla pivot
 
     pretty_mo = {
-    "TIPO": "Tipo",
-    "ESP": "Especialidad",
-    "PUESTO": "Puesto",
-    "CANTIDAD": "Cantidad",
+    "tipo": "Tipo",
+    "esp": "Especialidad",
+    "puesto": "Puesto",
+    "cantidad": "Cantidad",
     }
 
     pretty_rec = {
-        "TIPO_RECURSO": "Recurso",
-        "DESCRIPCION": "Descripción",
-        "CANTIDAD": "Cantidad",
-        "DIAS": "Días"
+        "tipo_recurso": "Recurso",
+        "descripcion": "Descripción",
+        "cantidad": "Cantidad",
+        "dias": "Días"
     }
                                     
     df_contrato_mo = df_contrato_mo.rename(columns=pretty_mo)
@@ -278,21 +276,21 @@ with tab1:
 
 
 
-        sap_sel    = fila["SAP"]
+        sap_sel    = fila["sap"]
         meses_act  = {m: int(fila[m]) for m in orden_meses if fila.get(m) > 0}
 
         if sap_sel == "" or sap_sel is None:
             st.info("Detalle global.")
         else:
             # Pre-filtrar una sola vez
-            df_sap_mo  = df_contrato_mo[df_contrato_mo["SAP"] == sap_sel]
-            df_sap_rec = df_contrato_rec[df_contrato_rec["SAP"] == sap_sel]
+            df_sap_mo  = df_contrato_mo[df_contrato_mo["sap"] == sap_sel]
+            df_sap_rec = df_contrato_rec[df_contrato_rec["sap"] == sap_sel]
 
             for mes in meses_act:
                 st.subheader(f"📌 {mes}")
 
-                df_mes_mo  = df_sap_mo[df_sap_mo["MES_NOMBRE"] == mes]
-                df_mes_rec = df_sap_rec[df_sap_rec["MES_NOMBRE"] == mes]
+                df_mes_mo  = df_sap_mo[df_sap_mo["mes_nombre"] == mes]
+                df_mes_rec = df_sap_rec[df_sap_rec["mes_nombre"] == mes]
 
                 # ⚡️ Aquí llamas a la función que arma TODAS las cards
                 render_cards_servicio(
@@ -311,8 +309,13 @@ with tab2:
     st.header("Servicios spot adjudicados")
 
     # 1) Filtrar df_mo y df_rec a solo CONTRATOS
-    df_spot_mo  = df_mo[df_mo["FUENTE"] == "SPOT"].copy()
-    df_spot_rec = df_rec[df_rec["FUENTE"] == "SPOT"].copy()
+    df_spot_mo  = df_mo[df_mo["fuente"] == "SPOT"].copy()
+    df_spot_rec = df_rec[df_rec["fuente"] == "SPOT"].copy()
+
+    # Y en este caso particular solo a adj
+
+    df_spot_mo = df_spot_mo[df_spot_mo["estatus"] == "Adjudicado"]
+    df_spot_rec = df_spot_rec[df_spot_rec["estatus"] == "Adjudicado"]
 
     # 2) Aplicar tus filtros (+ pivot)
     sap, cliente, gerencia, año = filtros_basicos(df_spot_mo, "spot")
@@ -322,17 +325,17 @@ with tab2:
     # 3) Render de la tabla pivot
 
     pretty_mo = {
-    "TIPO": "Tipo",
-    "ESP": "Especialidad",
-    "PUESTO": "Puesto",
-    "CANTIDAD": "Cantidad",
+    "tipo": "Tipo",
+    "esp": "Especialidad",
+    "puesto": "Puesto",
+    "cantidad": "Cantidad",
     }
 
     pretty_rec = {
-        "TIPO_RECURSO": "Recurso",
-        "DESCRIPCION": "Descripción",
-        "CANTIDAD": "Cantidad",
-        "DIAS": "Días"
+        "tipo_recurso": "Recurso",
+        "descripcion": "Descripción",
+        "cantidad": "Cantidad",
+        "dias": "Días"
     }
                                     
     df_spot_mo = df_spot_mo.rename(columns=pretty_mo)
@@ -356,21 +359,21 @@ with tab2:
         st.markdown("### Detalle del Servicio")
 
 
-        sap_sel    = fila["SAP"]
+        sap_sel    = fila["sap"]
         meses_act  = {m: int(fila[m]) for m in orden_meses if fila.get(m) > 0}
 
         if sap_sel == "" or sap_sel is None:
             st.info("Detalle global.")
         else:
             # Pre-filtrar una sola vez
-            df_sap_mo  = df_spot_mo[df_spot_mo["SAP"] == sap_sel]
-            df_sap_rec = df_spot_rec[df_spot_rec["SAP"] == sap_sel]
+            df_sap_mo  = df_spot_mo[df_spot_mo["sap"] == sap_sel]
+            df_sap_rec = df_spot_rec[df_spot_rec["sap"] == sap_sel]
 
             for mes in meses_act:
                 st.subheader(f"📌 {mes}")
 
-                df_mes_mo  = df_sap_mo[df_sap_mo["MES_NOMBRE"] == mes]
-                df_mes_rec = df_sap_rec[df_sap_rec["MES_NOMBRE"] == mes]
+                df_mes_mo  = df_sap_mo[df_sap_mo["mes_nombre"] == mes]
+                df_mes_rec = df_sap_rec[df_sap_rec["mes_nombre"] == mes]
 
                 # ⚡️ Aquí llamas a la función que arma TODAS las cards
                 render_cards_servicio(
